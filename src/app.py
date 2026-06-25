@@ -11,7 +11,9 @@ st.write(
     "based on a linear regression model trained on real insurance data."
 )
 
-DATA_PATH = "../data/hospital.csv"
+import os
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_PATH = os.path.join(BASE_DIR, "..", "data", "hospital.csv")
 
 
 @st.cache_resource
