@@ -1,9 +1,28 @@
+"""
+model.py
+--------
+Linear regression: from a manual, from-scratch model (to build intuition)
+to a proper scikit-learn model trained on all features.
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score, mean_absolute_error
+
+# The dataset's 'charges' values are in US Dollars (USD), since it's based
+# on US healthcare cost data. This is the conversion rate used to display
+# results in Indian Rupees (INR) instead. Update this value periodically
+# to keep it close to the real exchange rate.
+USD_TO_INR = 95.0
+
+
+def usd_to_inr(usd_amount):
+    """Converts a USD amount to INR for display purposes."""
+    return usd_amount * USD_TO_INR
 
 
 # ---------------------------------------------------------------------------
@@ -119,18 +138,57 @@ def fit_full_model(df_encoded, test_size=0.2, random_state=42):
 
     print("---- Full Model Performance (on test set) ----")
     print(f"R² Score: {metrics['r2_score']:.3f}")
-    print(f"MAE:      ${metrics['mae']:,.2f}")
-    print(f"RMSE:     ${metrics['rmse']:,.2f}")
+    print(f"MAE:      ₹{usd_to_inr(metrics['mae']):,.2f}  (${metrics['mae']:,.2f})")
+    print(f"RMSE:     ₹{usd_to_inr(metrics['rmse']):,.2f}  (${metrics['rmse']:,.2f})")
 
     return model, metrics
+
+
+def compare_models(df_encoded, test_size=0.2, random_state=42):
+    """
+    Trains Linear Regression, Random Forest, and Gradient Boosting on the
+    same train/test split, and returns a comparison of their performance.
+    """
+    feature_cols = ['age', 'gender', 'bmi', 'children', 'smoker', 'region']
+    X = df_encoded[feature_cols]
+    y = df_encoded['charges']
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=test_size, random_state=random_state
+    )
+
+    candidates = {
+        'Linear Regression': LinearRegression(),
+        'Random Forest': RandomForestRegressor(n_estimators=100, random_state=random_state),
+        'Gradient Boosting': GradientBoostingRegressor(random_state=random_state),
+    }
+
+    results = {}
+    print("---- Model Comparison (on test set) ----")
+    for name, candidate_model in candidates.items():
+        candidate_model.fit(X_train, y_train)
+        predictions = candidate_model.predict(X_test)
+
+        model_metrics = {
+            'r2_score': r2_score(y_test, predictions),
+            'mae': mean_absolute_error(y_test, predictions),
+            'rmse': rmse(y_test, predictions),
+        }
+        results[name] = {'model': candidate_model, 'metrics': model_metrics}
+
+        print(f"{name:20s} R²={model_metrics['r2_score']:.3f}  "
+              f"MAE=${model_metrics['mae']:,.2f}  "
+              f"RMSE=${model_metrics['rmse']:,.2f}")
+
+    best_name = max(results, key=lambda n: results[n]['metrics']['r2_score'])
+    print(f"\nBest model by R²: {best_name}")
+
+    return results
 
 
 def predict_charge(model, encoders, age, gender, bmi, children, smoker, region):
     """
     Predicts the medical charge for a single new person.
-    gender/smoker/region must be passed as their original string
-    values (e.g. 'male', 'yes', 'southeast') — this function handles
-    encoding them using the same encoders fit on the training data.
     """
     import pandas as pd
 
@@ -144,4 +202,4 @@ def predict_charge(model, encoders, age, gender, bmi, children, smoker, region):
     }])
 
     prediction = model.predict(row)[0]
-    return prediction
+    return max(prediction, 0)
