@@ -3,7 +3,8 @@
 A machine learning project that predicts annual medical insurance charges based on
 patient attributes such as age, gender, BMI, number of children, smoking status,
 and region. Built during my ML internship to practice the full pipeline: data
-cleaning, exploratory data analysis, and linear regression modeling.
+cleaning, exploratory data analysis, and linear regression modelling
+.
 
 🔗 **Live App:** https://hospital-charges-predictor-g92aynwnbcszvf9kjgmxwz.streamlit.app
 
